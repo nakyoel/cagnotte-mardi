@@ -190,7 +190,7 @@ function HomeView({ data, bal, onContrib, onHistory, onAdmin }) {
       <div className="hdr">
         <img src={LOGO_SRC} alt="Tiferet Moché" className="hdr-logo" />
         <div className="hdr-name">Cagnotte Cours du Mardi</div>
-        <div className="hdr-sub">Seoudah hebdomadaire 🍽️</div>
+        <div className="hdr-sub">Séouda hebdomadaire 🍽️</div>
       </div>
       <div className="bal">
         <div className="bal-lbl">Solde disponible</div>
@@ -333,36 +333,60 @@ function HistoryView({ transactions, onBack }) {
 }
 
 // ─── ADMIN ───────────────────────────────────────────────────────────────────
+const SUPER_ADMIN = "Yadmin"; // Code super-admin permanent — ne jamais modifier
+
 function AdminView({ data, onBack, onUpdate }) {
-  const [auth,    setAuth]    = useState(false);
-  const [pwd,     setPwd]     = useState("");
-  const [err,     setErr]     = useState("");
-  const [expAmt,  setExpAmt]  = useState("");
-  const [expDesc, setExpDesc] = useState("");
-  const [revUrl,  setRevUrl]  = useState(data.revolut_url || "");
-  const [newPwd,  setNewPwd]  = useState("");
-  const [success, setSuccess] = useState("");
+  const [auth,        setAuth]        = useState(false);
+  const [isSuperAdmin,setIsSuperAdmin]= useState(false);
+  const [pwd,         setPwd]         = useState("");
+  const [err,         setErr]         = useState("");
+  const [expAmt,      setExpAmt]      = useState("");
+  const [expDesc,     setExpDesc]     = useState("");
+  const [revUrl,      setRevUrl]      = useState(data.revolut_url || "");
+  const [newPwd,      setNewPwd]      = useState("");
+  const [success,     setSuccess]     = useState("");
+  const [confirmReset,setConfirmReset]= useState(false);
+
   const flash = (m) => { setSuccess(m); setTimeout(() => setSuccess(""), 2500); };
+
   const tryLogin = () => {
-    if (pwd === data.admin_password) { setAuth(true); setErr(""); }
-    else setErr("Mot de passe incorrect ❌");
+    if (pwd === SUPER_ADMIN) {
+      setAuth(true); setIsSuperAdmin(true); setErr("");
+    } else if (pwd === data.admin_password) {
+      setAuth(true); setIsSuperAdmin(false); setErr("");
+    } else {
+      setErr("Mot de passe incorrect ❌");
+    }
   };
+
   const addExpense = () => {
     const val = parseFloat(expAmt);
     if (!val || val<=0 || !expDesc.trim()) return;
     onUpdate(prev => ({ ...prev, transactions:[{id:Date.now().toString(),type:"expense",amount:val,description:expDesc.trim(),timestamp:Date.now()},...prev.transactions] }));
     setExpAmt(""); setExpDesc(""); flash("Dépense enregistrée ✓");
   };
+
   const saveConfig = () => {
     onUpdate(prev => ({ ...prev, revolut_url:revUrl.trim(), ...(newPwd.trim()? {admin_password:newPwd.trim()} :{}) }));
     setNewPwd(""); flash("Configuration sauvegardée ✓");
   };
+
+  const doReset = () => {
+    onUpdate(prev => ({ ...prev, transactions: [] }));
+    setConfirmReset(false);
+    flash("Cagnotte remise à zéro ✓");
+  };
+
   return (
     <div className="wiz">
       <div className="wiz-hdr">
         <button className="back" onClick={onBack}>←</button>
-        <div className="wiz-title">🔒 Espace gestionnaire</div>
+        <div className="wiz-title">
+          🔒 Espace gestionnaire
+          {isSuperAdmin && <span style={{fontSize:".7rem",marginLeft:8,color:"#c9a800",fontFamily:"'Nunito',sans-serif",fontWeight:800}}>SUPER ADMIN</span>}
+        </div>
       </div>
+
       {!auth ? (
         <>
           <p style={{fontSize:".88rem",color:"#7a90b8",marginBottom:16,lineHeight:1.5,fontWeight:600}}>
@@ -377,17 +401,43 @@ function AdminView({ data, onBack, onUpdate }) {
       ) : (
         <>
           {success && <div className="success">{success}</div>}
+
           <div className="adm-sec">
             <div className="adm-sec-title">📋 Enregistrer une dépense</div>
             <input type="number" className="field" placeholder="Montant (€)" value={expAmt} onChange={e => setExpAmt(e.target.value)} />
             <input className="field" placeholder="Description (ex : Courses mardi soir)" value={expDesc} onChange={e => setExpDesc(e.target.value)} />
             <button className="btn-adm" style={{opacity:expAmt&&expDesc?1:.35}} onClick={addExpense}>Enregistrer la dépense</button>
           </div>
+
           <div className="adm-sec">
             <div className="adm-sec-title">⚙️ Configuration</div>
             <input className="field" placeholder="Lien Revolut (https://revolut.me/...)" value={revUrl} onChange={e => setRevUrl(e.target.value)} />
             <input type="password" className="field" placeholder="Nouveau mot de passe (vide = inchangé)" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
             <button className="btn-adm" onClick={saveConfig}>💾 Sauvegarder</button>
+          </div>
+
+          <div className="adm-sec">
+            <div className="adm-sec-title" style={{color:"#e05555"}}>🗑️ Remise à zéro</div>
+            {!confirmReset ? (
+              <button className="btn-adm" style={{background:"#e05555",boxShadow:"0 3px 10px rgba(224,85,85,.25)"}}
+                onClick={() => setConfirmReset(true)}>
+                Vider l'historique et remettre à zéro
+              </button>
+            ) : (
+              <div style={{background:"#fff5f5",border:"2px solid #e05555",borderRadius:14,padding:16}}>
+                <p style={{fontSize:".9rem",fontWeight:700,color:"#e05555",marginBottom:14,textAlign:"center"}}>
+                  ⚠️ Toutes les transactions seront supprimées.<br/>Cette action est irréversible.
+                </p>
+                <div style={{display:"flex",gap:10}}>
+                  <button className="btn-adm" style={{flex:1,background:"#e05555",margin:0}} onClick={doReset}>
+                    Confirmer
+                  </button>
+                  <button className="btn-adm" style={{flex:1,background:"#7a90b8",margin:0}} onClick={() => setConfirmReset(false)}>
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
