@@ -9,12 +9,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey:            "REMPLACE_PAR_TON_API_KEY",
-  authDomain:        "REMPLACE_PAR_TON_AUTH_DOMAIN",
-  projectId:         "REMPLACE_PAR_TON_PROJECT_ID",
-  storageBucket:     "REMPLACE_PAR_TON_STORAGE_BUCKET",
-  messagingSenderId: "REMPLACE_PAR_TON_MESSAGING_SENDER_ID",
-  appId:             "REMPLACE_PAR_TON_APP_ID",
+  apiKey: "AIzaSyBPZMZRbpYowhACSxeK0B8kp9js47UVhuc",
+  authDomain: "cagnotte-mardi.firebaseapp.com",
+  projectId: "cagnotte-mardi",
+  storageBucket: "cagnotte-mardi.firebasestorage.app",
+  messagingSenderId: "988716235455",
+  appId: "1:988716235455:web:1d1db44626203d5d82e40a",
+  measurementId: "G-9FBFZS278W",
 };
 
 // ── Initialisation ────────────────────────────────────────────────────────────
