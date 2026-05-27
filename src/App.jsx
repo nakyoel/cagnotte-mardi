@@ -452,17 +452,40 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const DEFAULT = { transactions: [], revolut_url: "", admin_password: "Torah1" };
+
+    // Timeout de secours — affiche l'app après 3s max même si Firebase ne répond pas
+    const timeout = setTimeout(() => {
+      setData(prev => prev ?? DEFAULT);
+      setLoading(false);
+    }, 3000);
+
     // Abonnement temps réel Firebase
-    const unsub = subscribeData((d) => {
-      setData(d);
-      setLoading(false);
-    });
-    // Chargement initial si pas encore de données
-    loadData().then(d => {
-      setData(prev => prev ?? d);
-      setLoading(false);
-    });
-    return () => unsub();
+    let unsub = () => {};
+    try {
+      unsub = subscribeData((d) => {
+        clearTimeout(timeout);
+        setData(d);
+        setLoading(false);
+      });
+    } catch(e) {
+      console.warn("Firebase non configuré, mode local activé");
+    }
+
+    // Chargement initial
+    loadData()
+      .then(d => {
+        clearTimeout(timeout);
+        setData(prev => prev ?? d);
+        setLoading(false);
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        setData(prev => prev ?? DEFAULT);
+        setLoading(false);
+      });
+
+    return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
   const updateData = useCallback((updater) => {
