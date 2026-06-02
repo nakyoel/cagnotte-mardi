@@ -346,6 +346,7 @@ function AdminView({ data, onBack, onUpdate }) {
   const [newPwd,      setNewPwd]      = useState("");
   const [success,     setSuccess]     = useState("");
   const [confirmReset,setConfirmReset]= useState(false);
+  const [confirmDel,  setConfirmDel]  = useState(null); // id de la transaction à supprimer
 
   const flash = (m) => { setSuccess(m); setTimeout(() => setSuccess(""), 2500); };
 
@@ -375,6 +376,12 @@ function AdminView({ data, onBack, onUpdate }) {
     onUpdate(prev => ({ ...prev, transactions: [] }));
     setConfirmReset(false);
     flash("Cagnotte remise à zéro ✓");
+  };
+
+  const deleteTransaction = (id) => {
+    onUpdate(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id) }));
+    setConfirmDel(null);
+    flash("Saisie supprimée ✓");
   };
 
   return (
@@ -414,6 +421,58 @@ function AdminView({ data, onBack, onUpdate }) {
             <input className="field" placeholder="Lien Revolut (https://revolut.me/...)" value={revUrl} onChange={e => setRevUrl(e.target.value)} />
             <input type="password" className="field" placeholder="Nouveau mot de passe (vide = inchangé)" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
             <button className="btn-adm" onClick={saveConfig}>💾 Sauvegarder</button>
+          </div>
+
+          <div className="adm-sec">
+            <div className="adm-sec-title">🗑️ Corriger une saisie</div>
+            <p style={{fontSize:".82rem",color:"#7a90b8",marginBottom:12,lineHeight:1.45,fontWeight:600}}>
+              Supprime un don ou une dépense saisi par erreur. Le solde se recalcule automatiquement.
+            </p>
+            {data.transactions.length === 0 ? (
+              <p style={{fontSize:".85rem",color:"#9aa8c4",textAlign:"center",padding:"8px 0"}}>Aucune saisie pour le moment.</p>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {data.transactions.map(tx => {
+                  const char  = CHARACTERS.find(c => c.id === tx.character_id);
+                  const label = tx.type === "expense" ? tx.description : (char?.name || "Contribution");
+                  const sign  = tx.type === "contribution" ? "+" : "−";
+                  return (
+                    <div key={tx.id} style={{border:"1px solid #edf2ff",borderRadius:12,padding:"10px 12px",background:"#fbfcff"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{fontSize:"1.3rem"}}>{tx.type==="expense" ? "🍽️" : "🪙"}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,color:"#1e3a5f",fontSize:".92rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
+                          <div style={{fontSize:".72rem",color:"#9aa8c4"}}>{fmtDate(tx.timestamp)}</div>
+                        </div>
+                        <div style={{fontWeight:800,fontSize:".92rem",color:tx.type==="contribution" ? "#2461c5" : "#e05555"}}>
+                          {sign}{fmt(tx.amount)}
+                        </div>
+                        {confirmDel !== tx.id && (
+                          <button onClick={() => setConfirmDel(tx.id)}
+                            style={{border:"none",background:"transparent",cursor:"pointer",fontSize:"1.1rem",padding:"4px 6px"}}
+                            title="Supprimer cette saisie">🗑️</button>
+                        )}
+                      </div>
+                      {confirmDel === tx.id && (
+                        <div style={{marginTop:10,background:"#fff5f5",border:"2px solid #e05555",borderRadius:10,padding:12}}>
+                          <p style={{fontSize:".85rem",fontWeight:700,color:"#e05555",marginBottom:10,textAlign:"center"}}>
+                            Supprimer « {label} » · {sign}{fmt(tx.amount)} ?
+                          </p>
+                          <div style={{display:"flex",gap:8}}>
+                            <button className="btn-adm" style={{flex:1,background:"#e05555",margin:0}} onClick={() => deleteTransaction(tx.id)}>
+                              Supprimer
+                            </button>
+                            <button className="btn-adm" style={{flex:1,background:"#7a90b8",margin:0}} onClick={() => setConfirmDel(null)}>
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="adm-sec">
